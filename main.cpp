@@ -88,7 +88,6 @@ namespace drive
 
 
 #include <array>
-#include <charconv>
 #include <cstdio>
 #include <cstddef>
 #include <cstdlib>
@@ -108,16 +107,20 @@ namespace drive
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <vector>
-#include <thread>
 #include <sstream>
-#include <chrono>
 #include <openssl/sha.h>
-#include <iomanip>
-#include <cryptopp/sha.h>
-#include <cryptopp/hex.h>
-#include <cryptopp/filters.h>
 #include <zlib.h>
 #include <regex>
+
+/* 
+#include <thread>
+#include <charconv>
+#include <chrono>
+#include <iomanip>
+#include <cryptopp/filters.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/hex.h>
+*/
 
 
 using namespace std;
