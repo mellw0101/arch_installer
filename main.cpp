@@ -473,14 +473,22 @@ namespace tools
         string mode_tmp = mode.c_str();
         string drive_tmp = drive.c_str();
         string dev_drive = "/dev/" + drive_tmp;
-        if (mode_tmp == "F32") {runProgramWithInput(syscommand::mkfs_fat, {"mkfs.fat", "-F32", dev_drive}, "Y\n");}
-        if (mode_tmp == "ext4") {runProgramWithInput(syscommand::mkfs_ext4, {"mkfs.ext4", "-b 4096", dev_drive}, "Y\n");}
+        if (mode_tmp == "F32")
+        {
+            runProgramWithInput(syscommand::mkfs_fat, {"mkfs.fat", "-F32", dev_drive}, "Y\n");
+        }
+        
+        if (mode_tmp == "ext4")
+        {
+            runProgramWithInput(syscommand::mkfs_ext4, {"mkfs.ext4", "-b 4096", dev_drive}, "Y\n");
+        }
     }
     
     // uses pipes to search for string in output of executed command
     string executeCommand(const string& command)
     {
-        string result; array<char, 128> buffer;
+        string result;
+        array<char, 128> buffer;
 
         FILE* pipe = popen(command.c_str(), "r");
         if (!pipe)
@@ -494,192 +502,299 @@ namespace tools
             result += buffer.data();
         }
         
-        pclose(pipe); return result;
+        pclose(pipe);
+        return result;
     }
 
-    void cmkdir(const string& full_PATH_to_dir){            // make dir if one does not exist at target
-        if (!fs::exists(full_PATH_to_dir)) {            // check if dir already exxist
-            try {                                               //trys to create directory
-                fs::create_directory(full_PATH_to_dir); cout << "Directory created successfully" << endl;
-            }
-            catch (const fs::filesystem_error& e) {
-                cerr << "ERROR creating directory" << e.what() << endl;
-            }
-        } else {cout << "Directory already exists." << endl;}
+    // make dir if one does not exist at target
+    void cmkdir(const string& full_PATH_to_dir)
+    {
+        // check if dir already exxist
+        if (fs::exists(full_PATH_to_dir))
+        {
+            cout << "Directory already exists." << endl;
+            return;
+        }
+
+        // trys to create directory
+        try
+        {
+            fs::create_directory(full_PATH_to_dir); cout << "Directory created successfully" << endl;
+        }
+        catch (const fs::filesystem_error& e)
+        {
+            cerr << "ERROR creating directory" << e.what() << endl;
+        }
     }
-    void cddir(const string& full_PATH_to_dir) {            // move active directory to target
-        if (fs::exists(full_PATH_to_dir) && fs::is_directory(full_PATH_to_dir)) {
+
+    // move active directory to target
+    void cddir(const string& full_PATH_to_dir)
+    {
+        if (fs::exists(full_PATH_to_dir) && fs::is_directory(full_PATH_to_dir))
+        {
             cout << "cddir: Directory '" << full_PATH_to_dir << "' Exists\n";
 
-            if (chdir(full_PATH_to_dir.c_str()) != 0) {
+            if (chdir(full_PATH_to_dir.c_str()) != 0)
+            {
                 cerr << "cddir: Failed to change directory. Press enter to continue" << cin.get() << "\n";
             }
-            else if (chdir(full_PATH_to_dir.c_str()) == 0) {
+            else if (chdir(full_PATH_to_dir.c_str()) == 0)
+            {
                 cout << "cddir: changed Directory to: '" << full_PATH_to_dir.c_str() << "'\n";
             }
         }
-        else if (fs::exists(full_PATH_to_dir.c_str())) {
+        else if (fs::exists(full_PATH_to_dir.c_str()))
+        {
             cerr << "cddir: '" << full_PATH_to_dir.c_str() << "' is a file press enter to continue" << cin.get() << "\n";
         }
-        else {
+        else
+        {
             cerr << "cddir: '" << full_PATH_to_dir.c_str() << "' dosent exist press enter to continue" << cin.get() << "\n";
         }
     }
-    void pacman_run(const string& argsString, const string& input) {
+
+    void pacman_run(const string& argsString, const string& input)
+    {
         vector<string> args;
         istringstream iss(argsString.c_str());
         string arg;
-        while (iss >> arg) {
+        while (iss >> arg)
+        {
             args.push_back(arg);
         }
+        
         runProgramWithInput(syscommand::pacman, args, input.c_str());
     }
 }
-namespace c_cp_tools {
-    bool calcCRC32(const std::string& filename, uint32_t& checksum) {
+
+namespace c_cp_tools
+{
+    bool calcCRC32(const string& filename, uint32_t& checksum)
+    {
         ifstream file(filename, ios::binary);
-        if (!file.is_open()) {
+        if (!file.is_open())
+        {
             cerr << "calcCRC32: Error: Cannot open FILE: '" << filename << "'\n";
             return false;
         }
-        if (file.is_open()) {
+
+        if (file.is_open())
+        {
             cout << "calcCRC32: SUCCESSFULLY Opened '" << filename << "'\n";
             uint32_t crc = 0;
             char buffer[1024];
-            while (!file.eof()) {
+            while (!file.eof())
+            {
                 file.read(buffer, sizeof(buffer));
                 crc = static_cast<uint32_t>(crc32(crc, reinterpret_cast<const Bytef*>(buffer), static_cast<uInt>(file.gcount())));
                 //crc = crc32(crc, reinterpret_cast<const Bytef*>(buffer), static_cast<uInt>(file.gcount()));
             }
+            
             file.close();
             checksum = crc;
             cout << "calcCRC32: checksum for FILE: '" << filename << "' is '" << checksum << "'\n";
         }
+
         return true;
     }
-    void Checksum(const std::string& sourcePath, const std::string& destinationPath) {
+
+    void Checksum(const string& sourcePath, const string& destinationPath)
+    {
         uint32_t source_checksum;
+        
         // returns true if calcCRC32 was able to calculate checksum for Source file and false if it couldent
         bool source = calcCRC32(sourcePath, source_checksum);
-        if (source) {                                       // if source is true
-            std::cout << "Checksum: source FILE: '" << sourcePath << "' has checksum '"<< source_checksum << "'\n";
-        } else {                                            // if source is false
-            std::cerr << "Failed to calculate checksum for FILE: '" << sourcePath << "'\n";
+        
+        // if source is true
+        if (source)
+        {
+            cout << "Checksum: source FILE: '" << sourcePath << "' has checksum '"<< source_checksum << "'\n";
         }
+        // if source is false
+        else
+        {
+            cerr << "Failed to calculate checksum for FILE: '" << sourcePath << "'\n";
+        }
+
         uint32_t destination_checksum;
+
         // returns true if calcCRC32 was able to calculate checksum for Destination and false if it couldent
         bool destination = calcCRC32(destinationPath, destination_checksum);
-        if (destination) {                                  // if destination is true
+        
+        // if destination is true
+        if (destination)
+        {
             std::cout << "Checksum: destination FILE: '" << destinationPath << "' has checksum '"<< destination_checksum << "'\n";
-        } else {                                            // if destination is false
-            std::cerr << "Failed to calculate checksum for FILE: '" << destinationPath << "'\n";
         }
-        if (source_checksum == destination_checksum) {      // if checksum of source and destination match print success message
+        // if destination is false
+        else
+        {
+            cerr << "Failed to calculate checksum for FILE: '" << destinationPath << "'\n";
+        }
+        
+        // if checksum of source and destination match print success message
+        if (source_checksum == destination_checksum)
+        {
             cout << "Checksum: Match!!\n";
-        } else {                                            // if checksum does NOT match print error and wait for user to press enter to continue
+        }
+        // if checksum does NOT match print error and wait for user to press enter to continue
+        else
+        {
             cerr << "Checksum: Dosent Match!! (press enter to continue): " << cin.get() << "\n";
         }
     }
-    void copyFile(const std::string& sourcePath, const std::string& destinationPath) {
+
+    void copyFile(const string& sourcePath, const string& destinationPath)
+    {
         // open source file
-        std::ifstream source(sourcePath, std::ios::binary);
+        ifstream source(sourcePath, ios::binary);
 
         // open destination file
-        std::ofstream destination(destinationPath, std::ios::binary);
+        ofstream destination(destinationPath, ios::binary);
 
-        if (!source) {                                      // if source file coult not be opened tell user and exit function
-            std::cerr << "copyFile: Error opening source file: " << sourcePath << "' (press enter to continue): ";
+        // if source file coult not be opened tell user and exit function
+        if (!source)
+        {
+            cerr << "copyFile: Error opening source file: " << sourcePath << "' (press enter to continue): ";
             cin.ignore();
 
-            while (std::cin.get() != '\n') {                // loop until enter is input by user
-                std::cerr << "copyFile: (press enter to continue)";
-                std::cin.ignore();                          // ignore input becuse it was not enter as enter would have ended the loop
+            // loop until enter is input by user
+            while (cin.get() != '\n')
+            {
+                cerr << "copyFile: (press enter to continue)";
+                
+                // ignore input becuse it was not enter as enter would have ended the loop
+                cin.ignore();
             }
+            
             return;
         }
-        if (!destination) {                                 // if destination file could not be opened close function
-            std::cerr << "Error opening destination file: " << destinationPath << std::endl;
+
+        // if destination file could not be opened close function
+        if (!destination)
+        {
+            cerr << "Error opening destination file: " << destinationPath << '\n';
             return;
         }
 
         // Use istreambuf_iterator to copy file
         destination << source.rdbuf();
-
-        source.close();                                     // closes source file
-        destination.close();                                // closes destination file
+        
+        // closes source file
+        source.close();
+        
+        // closes destination file
+        destination.close();
 
         Checksum(sourcePath, destinationPath);
     }
 }
-void c_cp(const std::string& sourcePath, const std::string& destinationPath, bool force = false) {
+
+void c_cp(const std::string& sourcePath, const std::string& destinationPath, bool force = false)
+{
     using namespace c_cp_tools;
-    if (fs::exists(sourcePath)) {
+
+    if (fs::exists(sourcePath))
+    {
         cout << "c_cp: Source FILE: '" << sourcePath << "' Does exist\n";
-        if (!fs::exists(destinationPath)) {
+        if (!fs::exists(destinationPath))
+        {
             cout << "c_cp: Destination FILE: '" << destinationPath << "' Does not exist" << endl;
             copyFile(sourcePath, destinationPath);
-        } else {
-            if (!force){
+        }
+        else
+        {
+            if (!force)
+            {
                 char answer;
                 cout << "c_cp: Destination FILE: '" << destinationPath << "' Does exist\nc_cp: do you want to overwrite FILE ?: ";
                 cin >> answer;
-                if (answer == 'Y' || answer == 'y') {
+                if (answer == 'Y' || answer == 'y')
+                {
                     copyFile(sourcePath, destinationPath);
-                } else {
+                }
+                else
+                {
                     return;
                 }
-            } else {
+            }
+            else
+            {
                 cout << "c_cp: Destination FILE: '" << destinationPath << "' Does exist\nc_cp: (FORCE MODE) enabled, will OWERWRITE: '" << destinationPath << "' with content of: '" << sourcePath << "'\n";
                 copyFile(sourcePath, destinationPath);
             }
         }
-    } else {
+    }
+    else
+    {
         cerr << "c_cp: Source FILE: '" << sourcePath << "' Does not exist (press enter to continue): ";
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
         cin.get();
         return;
     }
 }
-namespace config_tools {
-    namespace desktop_enviroment {
-        void 
-        de_list(std::vector<std::string> items, std::string& pick) 
+
+namespace config_tools
+{
+    namespace desktop_enviroment
+    {
+        void de_list(std::vector<std::string> items, std::string& pick) 
         {
-            initscr();          // Initialize ncurses
-            noecho();           // Don't echo keypresses to the screen
-            cbreak();           // Disable line buffering
-            keypad(stdscr, TRUE); // Enable function keys, arrow keys, etc.
-            curs_set(FALSE);    // Hide the cursor
+            // Initialize ncurses
+            initscr();
+            
+            // Don't echo keypresses to the screen
+            noecho();
+            
+            // Disable line buffering
+            cbreak();
+            
+            // Enable function keys, arrow keys, etc.
+            keypad(stdscr, TRUE);
+            
+            // Hide the cursor
+            curs_set(FALSE);
 
             int selected = 0;
-            int currentState = 0;  // This variable stores the current state
+            
+            // This variable stores the current state
+            int currentState = 0;
 
-            while (1) 
+            while (true) 
             {
-                clear(); // Clear the screen
+                // Clear the screen
+                clear();
 
-                if (currentState == 0) // default state
+                // default state
+                if (currentState == 0)
                 {                            
                     // Display the first list
                     for (int i = 0; i < items.size(); ++i) 
                     {
                         if (i == selected) 
                         {
-                            attron(A_REVERSE); // Highlight the selected item
+                            // Highlight the selected item
+                            attron(A_REVERSE);
                         }
+                
                         mvprintw(i + 1, 1, "%s", items[i].c_str());
-                        attroff(A_REVERSE); // Turn off highlight
+                        
+                        // Turn off highlight
+                        attroff(A_REVERSE);
                     }
                 } 
-                else if (currentState == 1)  // when item 1 is chosen do this
+                // when item 1 is chosen do this
+                else if (currentState == 1)
                 {                    
                     mvprintw(1, 1, "press enter to confirm KDE as desktop enviroment");
                 } 
-                else if (currentState == 2) // when item 2 is chosen do this
+                // when item 2 is chosen do this
+                else if (currentState == 2)
                 {                     
                     mvprintw(1, 1, "press enter to confirm Gnome as desktop enviroment");
                 } 
-                else if (currentState == 3) // when item 3 is chosen do this
+                // when item 3 is chosen do this
+                else if (currentState == 3)
                 {                     
                     mvprintw(1, 1, "press enter to confirm xfce as desktop enviroment");
                 } 
@@ -689,65 +804,85 @@ namespace config_tools {
                     return;
                 }
 
-                int ch = getch();                                   // Get user input
+                // Get user input
+                int ch = getch();
                 switch (ch) 
                 {
-                    case KEY_UP:// when KEY_UP is pressed
+                    // when KEY_UP is pressed
+                    case KEY_UP:
                     {
                         if (selected > 0) 
                         {
-                            selected--;// subtract one from selected
+                            // subtract one from selected
+                            selected--;
                         }
+                    
                         break;
                     }                                    
-                    case KEY_DOWN:                                  // when KEY_DOWN is pressed
+                    
+                    // when KEY_DOWN is pressed
+                    case KEY_DOWN:
                     {
                         if (selected < items.size() - 1) 
                         {
-                            selected++;                             // add 1 to selected
+                            // add 1 to selected
+                            selected++;
                         }
+
                         break;
                     }
-                    case '\n':                                      // Enter key
+                    
+                    // Enter key
+                    case '\n':
                     {
+                        // if enter is pressed with item 1 highlighted do this
                         if (selected == 0) 
-                        {                        // if enter is pressed with item 1 highlighted do this
+                        {
+                            // enters item 1 if user presses enter from main Menu
                             if (currentState == 0) 
-                            {                // enters item 1 if user presses enter from main Menu
+                            {
                                 currentState = 1;
                             } 
+                            // if user presses enter from item 1 it will return user to main menu
                             else if (currentState == 1) 
-                            {         // if user presses enter from item 1 it will return user to main menu
+                            {
                                 pick = "1";
                                 currentState = 10;
                             }
                         }
                         
+                        // if enter is pressed with item 2 highlighted do this
                         if (selected == 1) 
-                        {                        // if enter is pressed with item 2 highlighted do this
+                        {
+                            // enters item 2 if user presses enter from main Menu
                             if (currentState == 0) 
-                            {                // enters item 2 if user presses enter from main Menu
+                            {
                                 currentState = 2;
                             } 
+                            // if user presses enter from item 2 it will return user to main menu
                             else if (currentState == 2) 
-                            {         // if user presses enter from item 2 it will return user to main menu
+                            {
                                 pick = "2";
                                 currentState = 10;
                             }
                         }
                         
-                        if (selected == 2) // if enter is pressed with item 3 highlighted do this
+                        // if enter is pressed with item 3 highlighted do this
+                        if (selected == 2)
                         {                        
                             if (currentState == 0) 
                             {                  
-                                currentState = 3;// enters item 3 if user presses enter from main Menu
+                                // enters item 3 if user presses enter from main Menu
+                                currentState = 3;
                             } 
-                            else if (currentState == 3) // if user presses enter from item 3 it will return user to main menu
+                            // if user presses enter from item 3 it will return user to main menu
+                            else if (currentState == 3)
                             {         
                                 pick = "3";
                                 currentState = 10;
                             }
                         }
+
                         break;
                     }
                 }
@@ -762,8 +897,8 @@ namespace config_tools {
         
         void de_pick_func() 
         {
-            std::string pick;
-            std::vector<std::string> items = {"KDE-Plasma", "Gnome", "xfce"};
+            string pick;
+            vector<string> items = {"KDE-Plasma", "Gnome", "xfce"};
             de_list(items, pick);
 
             if (pick == "1") 
@@ -790,16 +925,27 @@ namespace config_tools {
     {
         void list(vector<string> items, string& pick)
         {
-            initscr();          // Initialize ncurses
-            noecho();           // Don't echo keypresses to the screen
-            cbreak();           // Disable line buffering
-            keypad(stdscr, TRUE); // Enable function keys, arrow keys, etc.
-            curs_set(FALSE);    // Hide the cursor
+            // Initialize ncurses
+            initscr();
+            
+            // Don't echo keypresses to the screen
+            noecho();
+            
+            // Disable line buffering
+            cbreak();
+            
+            // Enable function keys, arrow keys, etc.
+            keypad(stdscr, TRUE);
+            
+            // Hide the cursor
+            curs_set(FALSE);
 
             int selected = 0;
-            int currentState = 0;  // This variable stores the current state
+            
+            // This variable stores the current state
+            int currentState = 0;
 
-            while (1)
+            while (true)
             {
                 // Clear the screen
                 clear();
@@ -850,6 +996,7 @@ namespace config_tools {
                             // subtract one from selected
                             selected--;
                         }
+                       
                         break;
                     }
     
@@ -861,6 +1008,7 @@ namespace config_tools {
                             // add 1 to selected
                             selected++;
                         }
+                       
                         break;
                     }
                     
@@ -950,7 +1098,8 @@ void config()
         // confirm root Password
         while (true) 
         {
-            std::cout << "Confirm '" << rootpass << "' as root password (Y/N): "; std::cin >> a;
+            cout << "Confirm '" << rootpass << "' as root password (Y/N): ";
+            cin >> a;
             
             if (a == 'Y' || a == 'y' || a == 'N' || a == 'n') 
             {
@@ -958,7 +1107,7 @@ void config()
             }
             else 
             {
-                std::cout << "\nERROR : ONLY (Y/N)\n";
+                cout << "\nERROR : ONLY (Y/N)\n";
             }
         } 
         
@@ -1044,7 +1193,8 @@ void config()
 
 void main_drive()
 {
-    std::string second_disk; std::string second_disk_name; std::string tmp; std::string path;
+    string second_disk, second_disk_name, tmp, path;
+    
     char response;
     int lsblk_1 = 1;
 
@@ -1234,7 +1384,9 @@ void start_install()
 
     std::string pass = rootpass;
     std::string password = pass + "\n" + pass;
-    tools::bash(arch_chroot + "/bin/passwd", password);     // Applying root password
+    
+    // Applying root password
+    tools::bash(arch_chroot + "/bin/passwd", password);
 
     std::string gettyautologin = "mkdir -p /etc/systemd/system/getty@tty1.service.d\necho '[Service]' > /etc/systemd/system/getty@tty1.service.d/override.conf\necho 'ExecStart=' >> /etc/systemd/system/getty@tty1.service.d/override.conf\necho 'ExecStart=-/usr/bin/agetty --autologin root --noclear %I $TERM' >> /etc/systemd/system/getty@tty1.service.d/override.conf";
     tools::bash(arch_chroot + "/bin/bash", gettyautologin);
@@ -1243,7 +1395,8 @@ void start_install()
 
     system("cp /usr/bin/archtest /mnt/usr/bin/archtest");
 
-    ofstream config_file("/mnt/config.txt");                // create file so that installer knows it has completed first part after reboot
+    // create file so that installer knows it has completed first part after reboot
+    ofstream config_file("/mnt/config.txt");
     if (config_file.is_open())
     {
         config_file << "1" << endl;
