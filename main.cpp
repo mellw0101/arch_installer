@@ -34,7 +34,7 @@ namespace tools
         }
         
         packages_string.erase(packages_string.length() - 1);
-        int status = std::system(packages_string.c_str());
+        int status = system(packages_string.c_str());
         if (status != 0)
         {
             cerr << "system call failed" << endl;
@@ -46,12 +46,12 @@ namespace tools
     string get_responce()
     {
         string tmp;
-        std::cin >> tmp;
+        cin >> tmp;
         return tmp;
     }
 
     // Function to connect to a WiFi network using iwctl with a password
-    bool connectToWiFi(const string & ssid, const string & password)
+    bool connectToWiFi(const string& ssid, const string& password)
     {
         string command = "iwctl station wlan0 connect \"" + ssid + "\"";
         
@@ -61,7 +61,7 @@ namespace tools
         }
         
         // Run the iwctl command to connect
-        int result = std::system(command.c_str());
+        int result = system(command.c_str());
 
         if (result == 0)
         {
@@ -123,16 +123,15 @@ namespace drive
 */
 
 
-using namespace std;
 namespace fs = std::filesystem;
 
-namespace syscommand {
+namespace syscommand
+{
     const string lsblk = "/usr/bin/lsblk";
     const string clear = "/usr/bin/clear";
     const string mkfs_ext4 = "/usr/bin/mkfs.ext4";
     const string pacman = "/usr/bin/pacman";
     const string sleep = "/usr/bin/sleep";
-    // const string sed = "/usr/bin/sed";
     const string systemctl = "/usr/bin/systemctl";
     const string cfdisk = "/usr/bin/cfdisk";
     const string mkfs_fat = "/usr/bin/mkfs.fat";
@@ -144,7 +143,9 @@ namespace syscommand {
     const string umount = "/usr/bin/umount";
     const string pacstrap = "/usr/bin/pacstrap";
 }
-namespace gbvar {
+
+namespace gbvar
+{
     string main_drive_name;
     string rootpass;
     string Username_start;
@@ -156,230 +157,346 @@ namespace gbvar {
     char a;
 }
 using namespace gbvar;
-namespace tools {
-    void error_message(const std::string& program, const std::string& message) {
-        std::cerr << program + ": ERROR: " << message << " (press enter to continiue)";
-        std::cin.clear();
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+namespace tools
+{
+    void error_message(const string& program, const string& message)
+    {
+        cerr << program + ": ERROR: " << message << " (press enter to continiue)";
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
         return;
     }
-    void runProgram(const string& program) {
-        if (fork() == 0) {
-            // Child process
+
+    void runProgram(const string& program)
+    {
+        // Child process
+        if (fork() == 0)
+        {
             execlp(program.c_str(), program.c_str(), nullptr);
-            perror("execlp failed"); // Print an error message if execlp fails
+            
+            // Print an error message if execlp fails
+            perror("execlp failed");
             exit(1);
-        } else {
-            // Parent process
-            wait(NULL); // Wait for the child process to finish
+        }
+        // Parent process
+        else
+        {
+            // Wait for the child process to finish
+            wait(NULL);
         }
     }
-    void runProgramWargs(const string &program, const vector<string> &args) {
-        vector<char *> argv;
-        for (const string &arg : args) {
+
+    void runProgramWargs(const string& program, const vector<string>& args)
+    {
+        vector<char*> argv;
+        for (const string& arg : args)
+        {
             argv.push_back(const_cast<char *>(arg.c_str()));
         }
+
         argv.push_back(nullptr);
 
-        if (fork() == 0) {
-            // Child process
+        // Child process
+        if (fork() == 0)
+        {
             execvp(program.c_str(), argv.data());
-            perror("execvp failed"); // Print an error message if execvp fails
+            
+            // Print an error message if execvp fails
+            perror("execvp failed");
             exit(1);
-        } else {
-            // Parent process
-            wait(NULL); // Wait for the child process to finish
+        }
+        // Parent process
+        else
+        {
+            // Wait for the child process to finish
+            wait(NULL);
         }
     }
-    void runProgramWithInput(const string& program, const vector<string>& args, const string& input) {
+
+    void runProgramWithInput(const string& program, const vector<string>& args, const string& input)
+    {
         vector<char*> argv;
-        for (const string& arg : args) {
+        for (const string& arg : args)
+        {
             argv.push_back(const_cast<char*>(arg.c_str()));
         }
+        
         argv.push_back(nullptr);
 
         int pipefd[2];
-        if (pipe(pipefd) == -1) {
+        if (pipe(pipefd) == -1)
+        {
             perror("pipe failed");
             exit(1);
         }
 
         pid_t pid = fork();
-        if (pid == -1) {
+        if (pid == -1)
+        {
             perror("fork failed");
             exit(1);
         }
 
-        if (pid == 0) {
-            // Child process
-            close(pipefd[1]);  // Close the write end of the pipe
+        // Child process
+        if (pid == 0)
+        {
+            // Close the write end of the pipe
+            close(pipefd[1]);
 
             // Redirect stdin to read from the pipe
-            if (dup2(pipefd[0], STDIN_FILENO) == -1) {
+            if (dup2(pipefd[0], STDIN_FILENO) == -1)
+            {
                 perror("dup2 failed");
                 exit(1);
             }
 
-            close(pipefd[0]);  // Close the read end of the pipe
+            // Close the read end of the pipe
+            close(pipefd[0]);
 
             // Execute the program
             execvp(program.c_str(), argv.data());
             perror("execvp failed");
             exit(1);
-        } else {
-            // Parent process
-            close(pipefd[0]);  // Close the read end of the pipe
+        }
+        // Parent process
+        else
+        {
+            // Close the read end of the pipe
+            close(pipefd[0]);
 
             // Write the input to the child process's stdin through the pipe
-            if (write(pipefd[1], input.c_str(), input.length()) == -1) {
+            if (write(pipefd[1], input.c_str(), input.length()) == -1)
+            {
                 perror("write failed");
                 exit(1);
             }
 
-            close(pipefd[1]);  // Close the write end of the pipe
+            // Close the write end of the pipe
+            close(pipefd[1]);
 
             // Wait for the child process to finish
             int status;
             waitpid(pid, &status, 0);
 
-            if (WIFEXITED(status)) {
+            if (WIFEXITED(status))
+            {
                 int exitStatus = WEXITSTATUS(status);
-                std::cout << "Child process exited with status: " << exitStatus << std::endl;
+                cout << "Child process exited with status: " << exitStatus << '\n';
             }
         }
     }
-    bool bash(const string& command, const string& input) {
+
+    bool bash(const string& command, const string& input)
+    {
         FILE* pipe = popen(command.c_str(), "w");
-        if (!pipe) return false;
-            fprintf(pipe, "%s", input.c_str());
-            fflush(pipe);
-            pclose(pipe);
-            return true;
+        if (!pipe)
+        {
+            return false;
+        }
+
+        fprintf(pipe, "%s", input.c_str());
+        fflush(pipe);
+        pclose(pipe);
+
+        return true;
     }
-    void input_to_file(const std::string& input, const std::string& directory, const std::string& FILEname) {
-        std::string full_path = directory + "/" + FILEname;
-        if (fs::exists(directory) && fs::is_directory(directory)) {
-            std::cout << "input_to_file: Directory: '" << directory << "' is a directory\n";
-            if (fs::exists(full_path) && fs::is_directory(full_path)) {
+
+    void input_to_file(const string& input, const string& directory, const string& FILEname)
+    {
+        string full_path = directory + "/" + FILEname;
+        if (fs::exists(directory) && fs::is_directory(directory))
+        {
+            cout << "input_to_file: Directory: '" << directory << "' is a directory\n";
+            if (fs::exists(full_path) && fs::is_directory(full_path))
+            {
                 error_message("input_to_file", "target file '" + FILEname + "' is a directory");
                 return;
             }
-            if (fs::exists(full_path)) {
-                std::cout << "input_to_file: target file '" << full_path << "' exists\n";
-                std::ofstream openFILE;
+
+            if (fs::exists(full_path))
+            {
+                cout << "input_to_file: target file '" << full_path << "' exists\n";
+                ofstream openFILE;
                 openFILE.open(full_path, std::ios::app);
-                if (openFILE.is_open()) {
+                if (openFILE.is_open())
+                {
                     openFILE << input << std::endl;
                     openFILE.close();
                     std::cout << "input_to_file: successfully appended '" << input << "' to '" << full_path << "'\n";
-                } else {
+                }
+                else
+                {
                     error_message("input_to_file", "cant open '" + FILEname + "'");
                     return;
                 }
-            } else {
+            }
+            else
+            {
                 error_message("input_to_file", "target file '" + full_path + "' does not exist");
                 return;
             }
-        } else if (fs::exists(directory)) {
+        }
+        else if (fs::exists(directory))
+        {
             error_message("input_to_file", "'" + directory + "' is not a directory it is a file");
             return;
         }
-        else {
+        else
+        {
             error_message("input_to_file", "Directory '" + directory + "' does not exist");
             return;
         }
     }
-    void create_file(const std::string& full_PATH_to_file) {
-        if (fs::exists(full_PATH_to_file)) {
-            if (fs::is_directory(full_PATH_to_file)) {
+
+    void create_file(const string& full_PATH_to_file)
+    {
+        if (fs::exists(full_PATH_to_file))
+        {
+            if (fs::is_directory(full_PATH_to_file))
+            {
                 error_message("create_file", "target file '" + full_PATH_to_file + "' is a directory");
                 return;
-            } else {
+            }
+            else
+            {
                 error_message("create_file", "target file '" + full_PATH_to_file + "' already exist");
                 return;
             }
-        } else {
-            std::ofstream outFile;
+        }
+        else
+        {
+            ofstream outFile;
             outFile.open(full_PATH_to_file, std::ios::out | std::ios::trunc);
-            if (!outFile.is_open()) {
+            if (!outFile.is_open())
+            {
                 error_message("create_file", "Failed to create new file at target '" + full_PATH_to_file + "'");
                 return;
-            } else {
+            }
+            else
+            {
                 outFile.close();
-                std::cout << "create_file: created empty file at '" << full_PATH_to_file << "'\n";
+                cout << "create_file: created empty file at '" << full_PATH_to_file << "'\n";
                 return;
             }
         }
     }
-    void export_from_file(const std::string& FILEname, std::string& evar) {
-        if (fs::exists(FILEname)) {                         // if target file exist
-            if (!fs::is_directory(FILEname)) {              // if target file is not a directory
-                if (!fs::is_empty(FILEname)) {              // if target file is not empty
-                    std::ifstream inFile;
+
+    void export_from_file(const string& FILEname, string& evar)
+    {
+        // if target file exist
+        if (fs::exists(FILEname))
+        {
+            // if target file is not a directory
+            if (!fs::is_directory(FILEname))
+            {
+                // if target file is not empty
+                if (!fs::is_empty(FILEname))
+                {
+                    ifstream inFile;
                     inFile.open(FILEname);
-                    if (inFile.is_open()) {                 // if function was able to open file
-                        std::cout << "export_from_file: successfully opened target file '" + FILEname + "'\n";
-                        std::string var;
-                        std::stringstream buffer;
-                        while (getline(inFile, var)) {
+                    
+                    // if function was able to open file
+                    if (inFile.is_open())
+                    {
+                        cout << "export_from_file: successfully opened target file '" + FILEname + "'\n";
+                        string var;
+                        stringstream buffer;
+                        while (getline(inFile, var))
+                        {
                             buffer << var << '\n';
                         }
+                        
                         evar = buffer.str();
-                        if (!evar.empty()) {
+                        if (!evar.empty())
+                        {
                             std::cout << "export_from_file: successfully read file '" + FILEname + "'\n";
                         }
+                        
                         inFile.close();
-                    } else {                                // if function was unable to open file
+                    }
+                    // if function was unable to open file
+                    else
+                    {
                         error_message("export_from_file", "cant open '" + FILEname + "'");
                     }
-                } else {                                    // if target file is empty
+                }
+                // if target file is empty
+                else
+                {
                     error_message("export_from_file", "target file '" + FILEname + "' is empty");
                 }
-            } else {                                        // if target file is a directory
+            }
+            // if target file is a directory
+            else
+            {
                 error_message("export_from_file", "target file '" + FILEname + "' is a directory");
             }
-        } else {                                            // if target file does not exist
+        }
+        // if target file does not exist
+        else
+        {
             error_message("export_from_file", "target file '" + FILEname + "' does not exist");
         }
     }
-    bool search_string(std::string& targetstring, const std::string& wordToFind) {
 
+    bool search_string(std::string& targetstring, const std::string& wordToFind)
+    {
         // Create a regular expression pattern to match the whole word
-        std::regex wordPattern("\\b" + wordToFind + "\\b");
+        regex wordPattern("\\b" + wordToFind + "\\b");
 
         // Search for the whole word in the string
-        std::smatch match;
-        if (std::regex_search(targetstring, match, wordPattern)) {
-            std::cout << "search_string: Word '" << wordToFind << "' found at position " << match.position() << std::endl;
+        smatch match;
+        if (regex_search(targetstring, match, wordPattern))
+        {
+            cout << "search_string: Word '" << wordToFind << "' found at position " << match.position() << '\n';
             return true;
-        } else {
-            std::cout << "search_string: Word '" << wordToFind << "' not found" << std::endl;
+        }
+        else
+        {
+            cout << "search_string: Word '" << wordToFind << "' not found" << '\n';
             return false;
         }
     }
-    void D_m(const string& drive, const string& target){    // mount drive on target
+
+    // mount drive on target
+    void D_m(const string& drive, const string& target)
+    {
         string drive_tmp = drive.c_str();
         string dev_drive = "/dev/" + drive_tmp;
         runProgramWargs(syscommand::sys_mount, {"mount", dev_drive, target.c_str()});
     }
-    void fD(const string& mode, const string& drive) {      // format drive in mode selected
+
+    // format drive in mode selected
+    void fD(const string& mode, const string& drive)
+    {
         string mode_tmp = mode.c_str();
         string drive_tmp = drive.c_str();
         string dev_drive = "/dev/" + drive_tmp;
         if (mode_tmp == "F32") {runProgramWithInput(syscommand::mkfs_fat, {"mkfs.fat", "-F32", dev_drive}, "Y\n");}
         if (mode_tmp == "ext4") {runProgramWithInput(syscommand::mkfs_ext4, {"mkfs.ext4", "-b 4096", dev_drive}, "Y\n");}
     }
-    string executeCommand(const string& command) {          // uses pipes to search for string in output of executed command
+    
+    // uses pipes to search for string in output of executed command
+    string executeCommand(const string& command)
+    {
         string result; array<char, 128> buffer;
 
         FILE* pipe = popen(command.c_str(), "r");
-        if (!pipe) {cerr << "Error executing the command." << endl; return "";}
+        if (!pipe)
+        {
+            cerr << "Error executing the command." << endl;
+            return "";
+        }
 
-        while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
+        while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+        {
             result += buffer.data();
         }
+        
         pclose(pipe); return result;
     }
+
     void cmkdir(const string& full_PATH_to_dir){            // make dir if one does not exist at target
         if (!fs::exists(full_PATH_to_dir)) {            // check if dir already exxist
             try {                                               //trys to create directory
